@@ -1,0 +1,44 @@
+name: Check FLOW member list
+
+on:
+  schedule:
+    # Every day at 13:17 UTC (≈ 9:17 AM US Eastern, 10:17 PM Korea)
+    - cron: "17 13 * * *"
+  workflow_dispatch: {}   # lets you run it by hand from the Actions tab
+
+permissions:
+  contents: write
+
+concurrency:
+  group: flow-scrape
+  cancel-in-progress: false
+
+jobs:
+  scrape:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+          cache: pip
+
+      - name: Install dependencies
+        run: pip install -r requirements.txt
+
+      - name: Fetch and compare member list
+        run: python scraper/scrape.py
+
+      - name: Commit if the member list changed
+        run: |
+          # Only commit when the member data itself changed (not just meta.json).
+          if [ -z "$(git status --porcelain data/members.csv data/changelog.csv data/snapshots)" ]; then
+            echo "Member list unchanged; nothing to commit."
+            exit 0
+          fi
+          git config user.name  "flow-observatory-bot"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add data
+          git commit -m "FLOW members updated: $(date -u +%Y-%m-%d)"
+          git push
