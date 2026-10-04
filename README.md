@@ -21,10 +21,19 @@ A GitHub Actions job runs in the cloud once a day, reads the page, and commits n
 
 ### Snapshots so far
 
-| Date | Source | Members |
-|---|---|---|
-| 2024-05-30 | Wayback Machine (page updated 2024-05-20) | 75 |
-| 2026-10-04 | Live (page updated 2026-09-21) | 93 |
+| Date | Source | Page updated | Members listed | Heading count |
+|---|---|---|---|---|
+| 2024-05-30 | Wayback Machine | 2024-05-20 | 75 | 75 |
+| 2024-08-15 | Wayback Machine | 2024-08-06 | 78 | 80 |
+| 2024-08-16 | Wayback Machine | 2024-08-06 | 78 | 80 |
+| 2024-09-26 | Wayback Machine | 2024-09-19 | 80 | 82 |
+| 2024-11-08 | Wayback Machine | 2024-10-24 | 82 | 84 |
+| 2024-11-27 | Wayback Machine | 2024-11-15 | 83 | 85 |
+| 2024-12-14 | Wayback Machine | 2024-12-05 | 84 | 85 |
+| 2024-12-27 | Wayback Machine | 2024-12-17 | 84 | 86 |
+| 2026-10-04 | Live | 2026-09-21 | 93 | 93 |
+
+From August to December 2024 the page's heading count was 1–2 higher than the names it actually listed. Both numbers are kept; the member lists contain only names that appeared on the page.
 
 ## Adding archived pages
 
