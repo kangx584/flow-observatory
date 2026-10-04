@@ -30,6 +30,8 @@ MEMBERS_CSV = DATA / "members.csv"
 CHANGELOG_CSV = DATA / "changelog.csv"
 META_JSON = DATA / "meta.json"
 
+HEADING_RE = re.compile(r"FLOW\s+(?:currently\s+)?has\s+(\d+)\s+members", re.I)
+
 HEADERS = {
     "User-Agent": (
         "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 "
@@ -77,7 +79,7 @@ def parse_markdown(text: str) -> dict:
     """Parse the reader-service Markdown: the heading line, then '- Member' bullet lines."""
     lines = text.splitlines()
     for i, line in enumerate(lines):
-        h = re.search(r"FLOW has\s+(\d+)\s+members", line, re.I)
+        h = HEADING_RE.search(line)
         if h:
             members = []
             for nxt in lines[i + 1:]:
@@ -104,7 +106,7 @@ def parse(html: str) -> dict:
     # The list sits right after a heading like "FLOW has 93 members:".
     heading = None
     for tag in soup.find_all(re.compile(r"^h[1-6]$")):
-        if re.search(r"FLOW has\s+\d+\s+members", tag.get_text(" ", strip=True), re.I):
+        if HEADING_RE.search(tag.get_text(" ", strip=True)):
             heading = tag
             break
     if heading is None:
@@ -141,13 +143,59 @@ def write_list(path: Path, members: list[str], as_of: str) -> None:
             w.writerow([name, as_of])
 
 
-def append_changelog(rows: list[list[str]]) -> None:
-    new_file = not CHANGELOG_CSV.exists()
-    with CHANGELOG_CSV.open("a", newline="", encoding="utf-8") as f:
-        w = csv.writer(f)
-        if new_file:
-            w.writerow(["detected_on", "page_last_updated", "change", "member"])
+INDEX_CSV = SNAPSHOTS / "index.csv"
+INDEX_FIELDS = ["date", "source", "source_url", "page_last_updated", "stated_count", "parsed_count"]
+
+
+def read_index() -> list[dict]:
+    if not INDEX_CSV.exists():
+        return []
+    with INDEX_CSV.open(newline="", encoding="utf-8") as f:
+        return list(csv.DictReader(f))
+
+
+def record_snapshot(date: str, members: list[str], source: str, source_url: str,
+                    page_updated, stated_count) -> None:
+    """Write snapshots/<date>.csv and upsert its row in snapshots/index.csv."""
+    write_list(SNAPSHOTS / f"{date}.csv", members, date)
+    rows = [r for r in read_index() if r["date"] != date]
+    rows.append({
+        "date": date, "source": source, "source_url": source_url,
+        "page_last_updated": page_updated or "",
+        "stated_count": "" if stated_count is None else stated_count,
+        "parsed_count": len(members),
+    })
+    rows.sort(key=lambda r: r["date"])
+    with INDEX_CSV.open("w", newline="", encoding="utf-8") as f:
+        w = csv.DictWriter(f, fieldnames=INDEX_FIELDS)
+        w.writeheader()
         w.writerows(rows)
+
+
+def rebuild() -> None:
+    """Rebuild changelog.csv and members.csv from every snapshot, oldest first.
+
+    The earliest snapshot's members are recorded as 'baseline' (we only know
+    they were members by then, not when they joined).
+    """
+    index = read_index()
+    out, prev = [], None
+    for r in index:
+        with (SNAPSHOTS / f"{r['date']}.csv").open(newline="", encoding="utf-8") as f:
+            cur = [row["member"] for row in csv.DictReader(f)]
+        base = [r["date"], r["page_last_updated"], r["source"]]
+        if prev is None:
+            out += [base + ["baseline", n] for n in sorted(cur, key=str.lower)]
+        else:
+            out += [base + ["added", n] for n in sorted(set(cur) - set(prev), key=str.lower)]
+            out += [base + ["removed", n] for n in sorted(set(prev) - set(cur), key=str.lower)]
+        prev = cur
+    with CHANGELOG_CSV.open("w", newline="", encoding="utf-8") as f:
+        w = csv.writer(f)
+        w.writerow(["detected_on", "page_last_updated", "source", "change", "member"])
+        w.writerows(out)
+    if index:
+        write_list(MEMBERS_CSV, prev, index[-1]["date"])
 
 
 def main() -> int:
@@ -166,13 +214,8 @@ def main() -> int:
     changed = bool(added or removed) or not MEMBERS_CSV.exists()
 
     if changed:
-        write_list(MEMBERS_CSV, members, today)
-        write_list(SNAPSHOTS / f"{today}.csv", members, today)
-        page_upd = result["page_updated"] or ""
-        append_changelog(
-            [[today, page_upd, "added", n] for n in added]
-            + [[today, page_upd, "removed", n] for n in removed]
-        )
+        record_snapshot(today, members, "live", URL, result["page_updated"], result["stated_count"])
+        rebuild()
 
     meta = {
         "source_url": URL,

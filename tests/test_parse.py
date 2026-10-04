@@ -20,3 +20,14 @@ def test_markdown_fallback():
 
 if __name__ == "__main__":
     test_markdown_fallback(); print("markdown fallback test passed")
+
+def test_wayback_2024_format():
+    # Older wording: "FLOW currently has 75 Members:"
+    p = Path(__file__).resolve().parent.parent / "data" / "archive" / "20240530093705.html"
+    r = parse(p.read_text(encoding="utf-8"))
+    assert r["stated_count"] == 75 and len(r["members"]) == 75
+    assert r["page_updated"] == "2024-05-20"
+    assert "Ralph Lauren" in r["members"] and "Union Pacific" in r["members"]
+
+if __name__ == "__main__":
+    test_wayback_2024_format(); print("wayback 2024 test passed")
