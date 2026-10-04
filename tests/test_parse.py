@@ -12,3 +12,11 @@ def test_fixture():
 
 if __name__ == "__main__":
     test_fixture(); print("parse test passed")
+
+def test_markdown_fallback():
+    r = parse((Path(__file__).parent / "fixture_2026-09-21.md").read_text())
+    h = parse((Path(__file__).parent / "fixture_2026-09-21.html").read_text())
+    assert r == h
+
+if __name__ == "__main__":
+    test_markdown_fallback(); print("markdown fallback test passed")

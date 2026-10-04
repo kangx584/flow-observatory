@@ -41,14 +41,64 @@ HEADERS = {
 }
 
 
+READER_URL = "https://r.jina.ai/" + URL  # fallback: public reader service, returns Markdown
+
+
 def fetch(url: str = URL) -> str:
-    resp = requests.get(url, headers=HEADERS, timeout=60)
+    """Fetch the page directly; if DOT refuses the request, fall back to a reader service."""
+    try:
+        resp = requests.get(url, headers=HEADERS, timeout=60)
+        resp.raise_for_status()
+        return resp.text
+    except requests.RequestException as e:
+        print(f"::warning::Direct fetch failed ({e}); trying reader fallback.")
+    resp = requests.get(READER_URL, headers={"Accept": "text/plain"}, timeout=90)
     resp.raise_for_status()
     return resp.text
 
 
+def _finish(members: list[str], stated_count, page_updated) -> dict:
+    if len(members) < 10:
+        raise RuntimeError(f"Only {len(members)} members parsed; refusing to record a suspicious result.")
+    return {"members": members, "stated_count": stated_count, "page_updated": page_updated}
+
+
+def _page_updated(text: str):
+    m = re.search(r"Last updated:\s*([A-Za-z]+,\s*[A-Za-z]+\s+\d{1,2},\s*\d{4})", text)
+    if not m:
+        return None
+    try:
+        return dt.datetime.strptime(" ".join(m.group(1).split()), "%A, %B %d, %Y").date().isoformat()
+    except ValueError:
+        return m.group(1)
+
+
+def parse_markdown(text: str) -> dict:
+    """Parse the reader-service Markdown: the heading line, then '- Member' bullet lines."""
+    lines = text.splitlines()
+    for i, line in enumerate(lines):
+        h = re.search(r"FLOW has\s+(\d+)\s+members", line, re.I)
+        if h:
+            members = []
+            for nxt in lines[i + 1:]:
+                s = nxt.strip()
+                if not s and not members:
+                    continue
+                b = re.match(r"^[-*+]\s+(.*)$", s)
+                if not b:
+                    break
+                name = re.sub(r"\[([^\]]*)\]\([^)]*\)", r"\1", b.group(1))  # strip links
+                name = " ".join(name.replace("**", "").split())
+                if name:
+                    members.append(name)
+            return _finish(members, int(h.group(1)), _page_updated(text))
+    raise RuntimeError("Could not find the 'FLOW has N members' heading; page layout may have changed.")
+
+
 def parse(html: str) -> dict:
     """Return {'members': [...], 'stated_count': int|None, 'page_updated': str|None}."""
+    if "<html" not in html[:2000].lower() and "<body" not in html.lower():
+        return parse_markdown(html)
     soup = BeautifulSoup(html, "html.parser")
 
     # The list sits right after a heading like "FLOW has 93 members:".
@@ -72,18 +122,7 @@ def parse(html: str) -> dict:
     ]
     members = [m for m in members if m]
 
-    page_updated = None
-    m = re.search(r"Last updated:\s*([A-Za-z]+,\s*[A-Za-z]+\s+\d{1,2},\s*\d{4})", soup.get_text(" "))
-    if m:
-        try:
-            page_updated = dt.datetime.strptime(m.group(1), "%A, %B %d, %Y").date().isoformat()
-        except ValueError:
-            page_updated = m.group(1)
-
-    if len(members) < 10:
-        raise RuntimeError(f"Only {len(members)} members parsed; refusing to record a suspicious result.")
-
-    return {"members": members, "stated_count": stated_count, "page_updated": page_updated}
+    return _finish(members, stated_count, _page_updated(soup.get_text(" ")))
 
 
 def read_current() -> list[str]:
@@ -160,4 +199,8 @@ def main() -> int:
 
 
 if __name__ == "__main__":
-    sys.exit(main())
+    try:
+        sys.exit(main())
+    except Exception as e:  # surface the reason as a GitHub annotation
+        print(f"::error title=FLOW scrape failed::{type(e).__name__}: {e}")
+        raise
