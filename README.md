@@ -31,9 +31,25 @@ A GitHub Actions job runs in the cloud once a day, reads the page, and commits n
 | 2024-11-27 | Wayback Machine | 2024-11-15 | 83 | 85 |
 | 2024-12-14 | Wayback Machine | 2024-12-05 | 84 | 85 |
 | 2024-12-27 | Wayback Machine | 2024-12-17 | 84 | 86 |
+| 2025-01-08 | Wayback Machine | 2024-12-17 | 84 | 86 |
+| 2025-01-10 | Wayback Machine | 2024-12-17 | 84 | 86 |
+| 2025-01-16 | Wayback Machine | 2024-12-17 | 84 | 86 |
+| 2025-01-22 | Wayback Machine | 2024-12-17 | 84 | 86 |
+| 2025-02-02 | Wayback Machine | 2024-12-17 | 84 | 86 |
+| 2025-02-04 | Wayback Machine | 2024-12-17 | 84 | 86 |
+| 2025-02-11 | Wayback Machine | 2025-02-07 | 85 | 87 |
+| 2025-03-08 | Wayback Machine | 2025-03-03 | 85 | 86 |
+| 2025-03-19 | Wayback Machine | 2025-03-03 | 85 | 86 |
+| 2025-05-20 | Wayback Machine | 2025-03-03 | 85 | 86 |
+| 2025-07-24 | Wayback Machine | 2025-03-03 | 85 | 86 |
+| 2025-09-12 | Wayback Machine | 2025-03-03 | 85 | 86 |
+| 2025-12-06 | Wayback Machine | 2025-03-03 | 85 | 86 |
+| 2025-12-24 | Wayback Machine | 2025-03-03 | 85 | 86 |
+| 2026-04-16 | Wayback Machine | 2026-01-13 | 86 | 86 |
+| 2026-05-08 | Wayback Machine | 2026-04-24 | 87 | 86 |
 | 2026-10-04 | Live | 2026-09-21 | 93 | 93 |
 
-From August to December 2024 the page's heading count was 1–2 higher than the names it actually listed. Both numbers are kept; the member lists contain only names that appeared on the page.
+The heading count and the listed names don't always match: from August 2024 to March 2025 the heading was 1–2 higher than the names listed, and in May 2026 it was 1 lower. Both numbers are kept; the member lists contain only names that appeared on the page.
 
 ## Adding archived pages
 
