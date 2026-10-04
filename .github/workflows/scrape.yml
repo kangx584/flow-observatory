@@ -32,13 +32,18 @@ jobs:
 
       - name: Commit if the member list changed
         run: |
-          # Only commit when the member data itself changed (not just meta.json).
-          if [ -z "$(git status --porcelain data/members.csv data/changelog.csv data/snapshots)" ]; then
-            echo "Member list unchanged; nothing to commit."
-            exit 0
-          fi
           git config user.name  "flow-observatory-bot"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          git add data
-          git commit -m "FLOW members updated: $(date -u +%Y-%m-%d)"
-          git push
+          if [ -n "$(git status --porcelain data/members.csv data/changelog.csv data/snapshots)" ]; then
+            git add data
+            git commit -m "FLOW members updated: $(date -u +%Y-%m-%d)"
+            git push
+          elif [ "$(date -u +%d)" = "01" ]; then
+            # Monthly heartbeat: GitHub pauses scheduled workflows after 60 days
+            # without repository activity, so record the check date once a month.
+            git add data/meta.json
+            git commit -m "Monthly check: no member changes ($(date -u +%Y-%m-%d))" || exit 0
+            git push
+          else
+            echo "Member list unchanged; nothing to commit."
+          fi
