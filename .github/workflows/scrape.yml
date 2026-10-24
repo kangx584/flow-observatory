@@ -1,10 +1,5 @@
 name: Check FLOW member list
 
-# Runs on a self-hosted runner (the owner's Mac), because transportation.gov
-# blocks requests from GitHub's and the reader service's cloud servers.
-# If the Mac is asleep when the schedule fires, the job waits (up to 24 hours)
-# and runs as soon as the Mac is back online.
-
 on:
   schedule:
     - cron: "17 13 * * *"   # daily, 13:17 UTC = 10:17 PM Korea
@@ -19,19 +14,21 @@ concurrency:
 
 jobs:
   scrape:
-    runs-on: [self-hosted, macOS, ARM64]
+    runs-on: ubuntu-latest
     timeout-minutes: 15
     steps:
       - uses: actions/checkout@v5
 
-      - name: Set up Python environment
-        run: |
-          python3 -m venv .venv
-          .venv/bin/pip install --quiet --upgrade pip
-          .venv/bin/pip install --quiet -r requirements.txt
+      - uses: actions/setup-python@v6
+        with:
+          python-version: "3.12"
+          cache: pip
+
+      - name: Install dependencies
+        run: pip install -r requirements.txt
 
       - name: Fetch and compare member list
-        run: .venv/bin/python scraper/scrape.py
+        run: python scraper/scrape.py
 
       - name: Commit if the member list changed
         run: |
