@@ -1,0 +1,38 @@
+name: Keep schedule active
+
+# GitHub pauses scheduled workflows in public repositories after 60 days
+# without activity. This job runs on GitHub's own servers (not the Mac), so it
+# works even when the Mac is off. If there has been no commit for 25 days, it
+# adds a small heartbeat commit.
+
+on:
+  schedule:
+    - cron: "41 3 * * 1"   # every Monday, 03:41 UTC
+  workflow_dispatch: {}
+
+permissions:
+  contents: write
+
+jobs:
+  heartbeat:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v5
+
+      - name: Commit a heartbeat if the repository has been quiet
+        run: |
+          last=$(git log -1 --format=%ct)
+          now=$(date +%s)
+          days=$(( (now - last) / 86400 ))
+          echo "Days since last commit: $days"
+          if [ "$days" -lt 25 ]; then
+            echo "Recent activity; no heartbeat needed."
+            exit 0
+          fi
+          git config user.name  "flow-observatory-bot"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          date -u +%Y-%m-%dT%H:%M:%SZ > data/heartbeat.txt
+          git add data/heartbeat.txt
+          git commit -m "Heartbeat: keep scheduled checks active ($(date -u +%Y-%m-%d))"
+          git pull --rebase --quiet origin main
+          git push

@@ -64,7 +64,8 @@ The capture date is read from the file itself.
 ## How it works
 
 - `scraper/scrape.py` finds the "FLOW has N members" heading (or the older "FLOW currently has N Members"), reads the list beneath it, and compares it with `data/members.csv`.
-- `.github/workflows/scrape.yml` runs it daily at 13:17 UTC and on demand (**Actions → Check FLOW member list → Run workflow**).
+- `.github/workflows/scrape.yml` runs it daily at 13:17 UTC and on demand (**Actions → Check FLOW member list → Run workflow**). It runs on a **self-hosted runner on the owner's Mac**, because transportation.gov blocks requests from cloud servers. If the Mac is asleep, the job waits up to 24 hours and runs when it's back online.
+- `.github/workflows/heartbeat.yml` runs weekly on GitHub's servers. If there has been no commit for 25 days, it adds a heartbeat commit so GitHub doesn't pause the schedule (public repositories are paused after 60 days without activity).
 - If the page layout changes and the list can't be found, the run fails (and GitHub emails you) rather than recording bad data.
 
 ## Run locally
